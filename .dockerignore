@@ -1,0 +1,23 @@
+# Docker-compose
+docker-compose.yml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+
+# Spunky data
+spunky/memory/*.db
+spunky/memory/*.json
+spunky/knowledge/*.index
+spunky/knowledge/*.json
+
+# Logs
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db
