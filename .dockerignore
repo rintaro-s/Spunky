@@ -1,3 +1,23 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:5690b77e06b0a8bc2b259aeb901f93484be211f3b0f5019708125fc785fc1b7e
-size 252
+# Docker-compose
+docker-compose.yml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+
+# Spunky data
+spunky/memory/*.db
+spunky/memory/*.json
+spunky/knowledge/*.index
+spunky/knowledge/*.json
+
+# Logs
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db
