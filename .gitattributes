@@ -1,3 +1,4 @@
 *.json filter=lfs diff=lfs merge=lfs -text
 **/[^.]* filter=lfs diff=lfs merge=lfs -text
+readme.md -filter -diff -merge
 readme.md !text -filter -merge -diff
