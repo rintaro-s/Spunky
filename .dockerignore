@@ -1,23 +1,47 @@
-# Docker-compose
-docker-compose.yml
+# .dockerignore
 
-# Python
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Test cache
 .pytest_cache/
-.venv/
 
-# Spunky data
-spunky/memory/*.db
-spunky/memory/*.json
-spunky/knowledge/*.index
-spunky/knowledge/*.json
+# Git
+.git/
+.gitignore
+.gitattributes
 
-# Logs
+# IDE / Editor specific
+.vscode/
+.idea/
+
+# Local directories and files
+buckup/
+*_trainer_output/
+logs/
+
+# Logs and local data
 *.log
+*.tsv
+*.jsonl
+*.db
+*.index
 
-# OS-specific
-.DS_Store
-Thumbs.db
+# Environment variables
+.env
+
+# Large model data (should be mounted as volumes)
+vits_full_sfw_nsfw/
+qwen3-8B-LoRA/
+CheckPoint/
+
+# Scripts and config not needed in the final image
+*.ps1
+pytest.ini
+
+# Docker files
+Dockerfile
+.dockerignore
