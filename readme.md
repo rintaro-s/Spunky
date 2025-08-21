@@ -18,6 +18,75 @@ Spunkyは、この問題に「役割分担」というアプローチで挑み�
 
 このハイブリッドな「共同運転（Co-Driver）モデル」によって、LLMの表現力を損なうことなく、思考の安定性と制御可能性を両立させることを目指しています。
 
+## 0. プロジェクト構成（ファイル構成）
+
+```
+Spunky/
+├─ docs/
+│  └─ specification.md            # 仕様や設計ノート
+├─ spunky/                         # アプリ本体（Pythonパッケージ）
+│  ├─ __init__.py
+│  ├─ config.py                    # 共通設定/環境変数の読み込み
+│  ├─ main.py                      # CLI/簡易エントリ（必要なら使用）
+│  ├─ server.py                    # FastAPI サーバー（エントリ）
+│  ├─ utils.py                     # 汎用ユーティリティ
+│  ├─ chat/                        # 会話生成（NLG/NLU/対話管理）
+│  │  ├─ __init__.py
+│  │  ├─ character.yml             # キャラクター/ペルソナ定義
+│  │  ├─ dialog_manager.py         # 対話状態/履歴の整理
+│  │  ├─ feedback.py               # 応答の自己改善フィードバック
+│  │  ├─ main_chat_loop.py         # チャット制御のループ
+│  │  ├─ nlg.py                    # 応答文生成（Transformers/llama.cpp対応）
+│  │  ├─ nlu.py                    # 軽量NLU（意図/感情の推定）
+│  │  └─ self_improve.py           # 自己改善ロジック
+│  ├─ knowledge/                   # RAG/知識検索
+│  │  ├─ __init__.py
+│  │  └─ retriever.py              # 検索/埋め込み/FAISS
+│  ├─ memory/                      # 記憶/学習/状態管理
+│  │  ├─ __init__.py
+│  │  ├─ learning.py               # 継続学習まわり
+│  │  ├─ state_manager.py          # 会話/ユーザ状態の管理
+│  │  ├─ svm_emotion_model.pkl     # 感情SVMモデル
+│  │  └─ svm_intent_model.pkl      # 意図SVMモデル
+│  ├─ scripts/
+│  │  ├─ evaluate.py               # 評価スクリプト
+│  │  └─ train.py                  # 学習スクリプト
+│  ├─ data/                        # データ置き場（空フォルダ）
+│  ├─ evaluation/                  # 評価用成果物/ログ
+│  └─ think/                       # 思考（Reasoning）中枢
+│     ├─ __init__.py
+│     ├─ approach_formation.py     # アプローチ策定
+│     ├─ core.py                   # ThinkCore本体（仮説→実行）
+│     ├─ evaluation.py             # 仮説評価
+│     ├─ fam.py                    # Failure-Aware Mechanism等
+│     ├─ finalization.py           # 結果の取りまとめ
+│     ├─ reason_analysis.py        # 推論過程の分析
+│     └─ strategy.py               # 戦略選択
+├─ howto.md                         # 簡単な使い方メモ
+├─ readme.md                        # このファイル
+├─ requirements.txt                 # 依存パッケージ
+├─ shell.py / shell.ps1             # ローカル実行補助スクリプト
+├─ tellme.md / tellyou.log          # 実験ログ/メモ
+```
+
+要点（主要コンポーネント）
+- server.py: FastAPIエントリ。/chat, /clear_history などのエンドポイント、応答の最終サニタイズ、GGUF設定の受け渡しを担当。
+- chat/nlg.py: 応答生成器。Transformers+LoRA と llama.cpp(GGUF) を自動切替。/think と /no-think のモード、空応答抑制の後処理、雑談高速応答を実装。
+- think/core.py: 推論中枢。仮説生成→評価→実行でツール/RAG/記憶を統合し、Content Plan（応答設計図）を作る。
+- knowledge/retriever.py: RAG検索。FAISS/埋め込みの管理。
+- memory/state_manager.py: 会話履歴やユーザ状態の管理。
+- chat/nlu.py: 意図/感情推定（RoBERTaベース SVM 付随）。
+- chat/character.yml: キャラクター/口調などのペルソナ設定。
+
+補足（GGUF/llama.cpp の設定）
+- 環境変数でバックエンドを制御できます：
+    - SPUNKY_GGUF_MODEL: GGUFモデルのパス（指定時はllama.cppを優先）
+    - SPUNKY_LLAMA_N_CTX: コンテキスト長（例: 8192）
+    - SPUNKY_LLAMA_N_GPU_LAYERS: GPUへオフロードする層数（CUDAビルド時）
+    - SPUNKY_LLAMA_N_THREADS: CPUスレッド数
+    - SPUNKY_LLAMA_MAIN_GPU: メインGPUインデックス（例: 0）
+    ※ CUDA対応のllama-cpp-pythonを使用している場合のみGPUオフロードが有効になります。
+
 ## 2. どうやって動いてるの？ (ワークフロー)
 
 ユーザーからリクエストが来ると、Spunkyの中ではこんな処理が走っています。
