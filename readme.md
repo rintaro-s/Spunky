@@ -87,6 +87,19 @@ Spunky/
     - SPUNKY_LLAMA_MAIN_GPU: メインGPUインデックス（例: 0）
     ※ CUDA対応のllama-cpp-pythonを使用している場合のみGPUオフロードが有効になります。
 
+リモート推論（Ollama / llama.cpp server）
+- 起動済みのリモートがあれば自動で優先使用します（優先度: Ollama > llama.cpp server > ローカルGGUF > Transformers+LoRA）。
+- 環境変数（任意）
+    - SPUNKY_OLLAMA_BASE_URL: OllamaのURL（既定: http://127.0.0.1:11434）
+    - SPUNKY_OLLAMA_MODEL: 使うモデル名（未指定なら qwen3/qwen2 を優先自動選択）
+    - SPUNKY_LLAMA_SERVER_URL: llama.cpp server(OpenAI互換)のURL（既定: http://127.0.0.1:8080）
+    - SPUNKY_LLAMA_SERVER_MODEL: 使うモデルID（未指定なら qwen3/qwen2 を優先自動選択）
+
+注意（Qwen3 GGUF）
+- 一部のllama.cppビルドではQwen3アーキテクチャ未対応です。その場合は下記いずれかを推奨：
+    1) Qwen2.x / Qwen2.5 のGGUFを使う
+    2) Qwen3に対応した新しいllama.cpp（CUDA対応）を用意する
+
 ## 2. どうやって動いてるの？ (ワークフロー)
 
 ユーザーからリクエストが来ると、Spunkyの中ではこんな処理が走っています。
