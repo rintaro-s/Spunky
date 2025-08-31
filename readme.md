@@ -71,7 +71,7 @@ Spunky/
 ```
 
 要点（主要コンポーネント）
-- server.py: FastAPIエントリ。/chat, /clear_history などのエンドポイント、応答の最終サニタイズ、GGUF設定の受け渡しを担当。
+- server.py: FastAPIエントリ。/chat エンドポイント、応答の最終サニタイズ、GGUF設定の受け渡しを担当（サーバーはステートレス）。
 - chat/nlg.py: 応答生成器。Transformers+LoRA と llama.cpp(GGUF) を自動切替。/think と /no-think のモード、空応答抑制の後処理、雑談高速応答を実装。
 - think/core.py: 推論中枢。仮説生成→評価→実行でツール/RAG/記憶を統合し、Content Plan（応答設計図）を作る。
 - knowledge/retriever.py: RAG検索。FAISS/埋め込みの管理。
@@ -134,10 +134,6 @@ Spunky/
 
 A: LLMの「それっぽい嘘」を減らし、もっと信頼・制御できる形でAIエージェントを動かすためのアーキテクチャを模索することです。Spunky-Coreが思考の主導権を握ることで、なぜその応答になったのか、後から検証しやすくなります。
 
-**Q: なぜハイブリッド構成なの？LLMだけで全部できない？**
-
-A: LLM単体だと、思考のプロセスがブラックボックスになりがちで、制御が難しいからです。得意なことは得意なやつに任せる「役割分担」が、今のところ堅実なアプローチだと考えています。
-
 **Q: なぜCPUのみが使われているか？**
 
 A: 基本的には、特別なGPUマシンがなくても動かせることを目指しています。Spunky-Coreの思考部分はPythonなのでCPUで十分動きます。LLM（Qwen）や各種AIモデルの推論は、GPUがあればもちろん高速になりますが、CPUでも動作する設定になっています。環境への依存をなるべく減らしたい、という意図です。
@@ -167,3 +163,133 @@ streamlit run client.py
 ```
 
 ブラウザで `http://localhost:8501` が開かれ、チャット画面が表示されます。
+
+## 5. サーバーAPIドキュメント（簡易）
+
+エンドポイント一覧
+- GET `/` ヘルスチェック
+- POST `/chat` チャット推論
+
+POST `/chat`
+- Request JSON
+    - `user_id` string 任意 デフォルト`default_user`
+    - `text` string 必須 入力テキスト
+    - `role_sheet` object 任意 例: `{ "tone": "元気でフレンドリー" }`
+    - `over_hallucination` boolean 任意 生出力寄りのモード
+    - `history` array 任意 クライアント側で管理する履歴を送信
+        - 要素: `{ role: "user"|"assistant", content: string }`
+        - サーバーは直近最大5往復を参照。
+    - `compressed_memory` string 任意 圧縮履歴（CHM1 形式）。送ると古い履歴として優先参照されます。
+- Response JSON
+    - `response` string 生成応答（サニタイズ済み）
+    - `debug_info` object デバッグ情報（ルート、思考ログ、プロンプト、利用履歴など）
+    - `compressed_memory` string 次回以降に送れる圧縮履歴（CHM1）
+
+例（curl）
+```bash
+curl -X POST http://127.0.0.1:8000/chat \
+    -H "Content-Type: application/json" \
+    -d '{
+        "user_id": "alice",
+        "text": "今日の天気は？",
+        "history": [
+            {"role":"user","content":"おはよう"},
+            {"role":"assistant","content":"やっほー！今日もがんばろうね！"}
+        ]
+    }'
+```
+
+（注）サーバーはステートレスです。履歴の保持や削除APIはありません。履歴はクライアント側で管理してください。
+
+## 6. クライアント側で履歴を管理する方法
+
+`client.py` はセッションの `messages`（role/content）をそのまま `/chat` の `history` に同梱して送信します。サーバーはこの履歴を優先的にコンテキストとして使用します。これにより、複数クライアントや別セッション間の混線を避けつつ、UI側で履歴制御が可能です。
+
+ポイント
+- 履歴は `[{role, content}, ...]` の配列で送り、不要な内部フィールドは含めない
+- 直近5往復はそのまま参照、それ以前は `compressed_memory`（CHM1）を優先利用
+- サーバーは履歴を保持しません（完全ステートレス）。
+
+環境変数
+- `SPUNKY_HISTORY_COMPRESSED_MAXTOKENS`（任意）: 直近5件以外を圧縮して保持する際の概算トークン上限（デフォルト 500）。
+
+圧縮履歴（CHM1: Chat History Minimal v1）
+- 形式（例）
+```
+#CHM1 v1
+user:alice
+RECENT:
+U:前回の質問…
+A:前回の回答…
+---
+SUMMARY: 過去の長い会話の要点を1行に圧縮
+KEY: 検索,設定,ログ,API,日本語
+LAST U:今回のユーザー入力 | A:今回の返答
+```
+- クライアントは `compressed_memory` として次回リクエストにそのまま送付可能。
+- サーバー側は、`history` と `compressed_memory` が重複する場合、CHM1を優先します。
+
+## 7. NLUモデル（ルーター用 RoBERTa）の追加学習
+
+使用モデル: `nlp-waseda/roberta-base-japanese` ベースの意図/感情の分類モデル。保存先は以下。
+- 意図: `spunky/memory/nlu_model_intent`
+- 感情: `spunky/memory/nlu_model_emotion`
+
+前提
+- Python 3.10 以上
+- `pip install -r requirements.txt`
+
+学習データ
+- CSV/TSVなどで `text,label` の形式を用意（日本語）
+- クラス名はラベルにそのまま使用（例: intent: `question|greeting|statement|farewell` 等、emotion: `happy|sad|angry|neutral` 等）
+
+学習手順（例: Transformers Trainer を想定）
+1. データを `data/intent_train.csv`, `data/intent_eval.csv` のように分割
+2. 簡易トレーニングスクリプトを用意（例）
+     - ベース: `nlp-waseda/roberta-base-japanese`
+     - max_len=256, batch=16, epoch=3〜5, lr=2e-5 目安
+3. 学習後、以下の構成で保存
+     - `spunky/memory/nlu_model_intent/` に `config.json`, `pytorch_model.bin`, `tokenizer.json` 等
+     - 同様に感情モデルを `spunky/memory/nlu_model_emotion/` へ
+4. サーバー再起動で自動ロードされます
+
+Tips
+- 環境変数 `SPUNKY_NLU_DEVICE=cuda` でGPUを使用
+- クラス名は英小文字を推奨（ルーター側の判定と整合）
+- 迷う場合はまず intent に `question` と `greeting` の識別精度を上げるところから始める
+
+（将来）専用スクリプトの整備
+- 需要があれば `spunky/scripts/train_nlu.py` を追加し、上記を自動化します
+
+## 知識検索（RAG: Retrieval-Augmented Generation）の仕組み
+
+SpunkyのRAGは、単なるベクトル検索ではなく「エージェント式RAG」として設計されています。主な特徴は以下の通りです。
+
+- **1. LLMによる多様な検索クエリ生成**  
+  ユーザーの質問から、LLM（Qwen-LoRA）が4つ前後の多様な検索クエリ（例：「ガールズ&パンツァー オープニング」「Girls und Panzer OP」「ガルパン 主題歌」など）を自動生成します。  
+  これにより、単一クエリでは拾えない関連知識も幅広くカバーします。
+
+- **2. FAISS＋SentenceTransformerによる高速ベクトル検索**  
+  各クエリごとにFAISS＋埋め込みモデルで最大8件ずつ検索し、重複を除去してマージします。  
+  検索結果の全チャンク（最大32件程度）をログ出力し、デバッグや精度検証が容易です。
+
+- **3. ドメイン特化の再ランキング**  
+  検索結果は「タイトル・本文のキーワード一致」「n-gram類似度」「ベクトル距離」「テキスト長」など複数指標でスコアリング。  
+  さらに、ガルパン（Girls und Panzer）など特定ドメインのコンテンツには最大100点のボーナスを与え、関連性の高い知識を最優先で選択します。
+
+- **4. 全検索結果の詳細ログ**  
+  どのクエリで何件ヒットし、どのようなスコアで再ランキングされたかを全てログ出力。  
+  これにより、なぜその知識が選ばれたかを後から検証できます。
+
+- **5. 柔軟なバックエンド**  
+  LM StudioやOllama、ローカルGGUFなど複数のLLMバックエンドに対応。  
+  `SPUNKY_BACKEND=lmstudio` かつ `SPUNKY_STRICT_BACKEND=1` でLM Studioのみを強制使用できます。
+
+**例：ガルパンのオープニング曲を質問した場合**  
+→ LLMが「ガールズ&パンツァー オープニング」「Girls und Panzer OP」などのクエリを自動生成  
+→ 検索結果から「それゆけ!乙女の戦車道!!」をガルパン専用ボーナスで最優先選択  
+→ 正確な知識を自然な日本語で返答
+
+---
+
+この仕組みにより、従来のRAGよりも「自然で正確な知識検索」と「なぜその知識が選ばれたかの透明性」を両立しています。
