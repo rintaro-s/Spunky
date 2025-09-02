@@ -1,5 +1,9 @@
 # Spunky プロジェクト
 本コードのコメントはAIによるものです
+
+<img width="360" height="256" alt="image" src="https://github.com/user-attachments/assets/87ac247b-33d2-4d40-9dde-99fec15f75c6" />
+
+
 ## 1. Spunkyって何？
 
 一言でいうと、「LLMにちゃんと"考え"させる」ための実験的なアーキテクチャ、あるいはその実装です。
