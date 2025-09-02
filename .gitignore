@@ -1,0 +1,36 @@
+# Ignore large data dumps and dataset files (sensitive / copyright)
+# Generic dataset file patterns
+*.jsonl
+*.jsonl.gz
+*.tsv
+
+# Indexes / vector stores / search artifacts
+*.index
+knowledge.index
+knowledge_map.json
+
+# Model checkpoints and large binary artifacts
+*.safetensors
+*.pt
+optimizer.pt
+scheduler.pt
+
+# Project-specific large dirs
+buckup/
+data/
+CheckPoint/
+vits_full_sfw_nsfw/
+
+# Explicit dataset files (common in this repo)
+nicopedia_full_dump.jsonl
+jawiki.jsonl
+Haruhi_54K_v1.jsonl
+imouto.json
+train_wo_filtering.tsv
+
+# Local env / secrets
+.env
+.venv/
+.vscode/
+.pytest_cache/
+.ipynb_checkpoints/
