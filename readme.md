@@ -1,7 +1,8 @@
 # Spunky プロジェクト
 本コードのコメントはAIによるものです
 
-<img width="360" height="256" alt="image" src="https://github.com/user-attachments/assets/87ac247b-33d2-4d40-9dde-99fec15f75c6" />
+<blockquote class="twitter-tweet"><p lang="ja" dir="ltr">オタ知識&amp;妹口調特化ローカルLLM完成ed<br>Geminiより...? <a href="https://t.co/hf4l9vKrW6">pic.twitter.com/hf4l9vKrW6</a></p>&mdash; Rinta (@Rinta_LAL) <a href="https://twitter.com/Rinta_LAL/status/1962709331193012594?ref_src=twsrc%5Etfw">September 2, 2025</a></blockquote> 
+<img width="1083" height="770" alt="スクリーンショット 2025-09-02 114442" src="https://github.com/user-attachments/assets/acbaf7a2-e509-40e5-8552-dfe8a3f07e4c" />
 
 
 ## 1. Spunkyって何？
