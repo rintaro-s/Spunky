@@ -1,5 +1,10 @@
 # Spunky プロジェクト
 本コードのコメントはAIによるものです
+
+<blockquote class="twitter-tweet"><p lang="ja" dir="ltr">オタ知識&amp;妹口調特化ローカルLLM完成ed<br>Geminiより...? <a href="https://t.co/hf4l9vKrW6">pic.twitter.com/hf4l9vKrW6</a></p>&mdash; Rinta (@Rinta_LAL) <a href="https://twitter.com/Rinta_LAL/status/1962709331193012594?ref_src=twsrc%5Etfw">September 2, 2025</a></blockquote> 
+<img width="1083" height="770" alt="スクリーンショット 2025-09-02 114442" src="https://github.com/user-attachments/assets/acbaf7a2-e509-40e5-8552-dfe8a3f07e4c" />
+
+
 ## 1. Spunkyって何？
 
 一言でいうと、「LLMにちゃんと"考え"させる」ための実験的なアーキテクチャ、あるいはその実装です。
@@ -16,7 +21,8 @@ Spunkyは、この問題に「役割分担」というアプローチで挑み�
   - Spunky-Coreが考えた「応答の設計図（Content Plan）」を元に、人間らしい自然な文章を生成することに特化します。いわば「表現力がすごい役者」です。
 
 - **豊富なRAG知識**
-  - [ニコニコ大百科のデータ](https://www.nii.ac.jp/dsc/idr/nico/)をすべてインデックスしており、 オタク向け知識を追加しています
+  - [ニコニコ大百科のデータ](https://www.nii.ac.jp/dsc/idr/nico/)（提供: 株式会社ドワンゴおよび国立情
+    報学研究所）をすべてインデックスしており、 オタク向け知識を追加しています
 
 このハイブリッドな「共同運転（Co-Driver）モデル」によって、LLMの表現力を損なうことなく、思考の安定性と制御可能性を両立させることを目指しています。
 
